@@ -1,0 +1,15 @@
+# Cache files (contain API data, not source code)
+cache/*.json
+
+# Token file (sensitive)
+.neodata_token
+
+# Logs
+*.log
+
+# Node
+node_modules/
+package-lock.json
+
+# Backup files
+*.bak.*

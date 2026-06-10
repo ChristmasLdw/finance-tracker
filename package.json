@@ -1,0 +1,12 @@
+{
+  "name": "finance-tracker",
+  "version": "1.0.0",
+  "description": "港股回购与分红追踪 - 港交所官方数据",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

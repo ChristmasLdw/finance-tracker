@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>港股回购与分红追踪 - 港交所官方数据</title>
+<style>
+  :root {
+    --bg: #0a0e17;
+    --bg-card: #111827;
+    --bg-card-hover: #1a2332;
+    --bg-row-alt: #0f1724;
+    --border: #1e2d3d;
+    --text: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --accent: #3b82f6;
+    --green: #10b981;
+    --red: #ef4444;
+    --orange: #f59e0b;
+    --gold: #eab308;
+    --tencent: #0066CC;
+    --xiaomi: #FF6900;
+    --popmart: #FF0A0A;
+    --radius: 12px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #0f1a2e 0%, #111827 50%, #0f1a2e 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 32px 24px;
+    text-align: center;
+  }
+
+  .header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+
+  .header .subtitle {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+  }
+
+  .header .badge {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 4px 12px;
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: #60a5fa;
+  }
+
+  /* Container */
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  /* Company Tabs */
+  .tabs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .tab-btn {
+    padding: 12px 28px;
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-secondary);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .tab-btn:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .tab-btn.active {
+    border-color: transparent;
+    color: #fff;
+  }
+
+  .tab-btn.tencent.active { background: var(--tencent); border-color: var(--tencent); }
+  .tab-btn.xiaomi.active { background: var(--xiaomi); border-color: var(--xiaomi); }
+  .tab-btn.popmart.active { background: var(--popmart); border-color: var(--popmart); }
+
+  .tab-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .tab-btn.tencent .tab-dot { background: var(--tencent); }
+  .tab-btn.xiaomi .tab-dot { background: var(--xiaomi); }
+  .tab-btn.popmart .tab-dot { background: var(--popmart); }
+  .tab-btn.active .tab-dot { background: rgba(255,255,255,0.8); }
+
+
+  /* Day selector */
+  .day-selector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .day-selector-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-right: 4px;
+  }
+
+  .day-selector-btn {
+    padding: 5px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .day-selector-btn:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .day-selector-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  /* ===== 最近N日回购面板 ===== */
+
+  .dashboard-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .dash-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 0.25s, box-shadow 0.25s;
+  }
+
+  .dash-card:hover {
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  /* 卡片头部 */
+  .dash-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dash-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .dash-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  .dash-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .dash-code {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+
+  .dash-badge {
+    margin-left: auto;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  /* 日回购条目 */
+  .dash-days {
+    padding: 10px 16px 14px;
+  }
+
+  .dash-day-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+  }
+
+  .dash-day-row + .dash-day-row {
+    border-top: 1px solid rgba(30,45,61,0.35);
+  }
+
+  .dash-day-date {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    min-width: 72px;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+  }
+
+  .dash-day-date .weekday {
+    font-size: 0.65rem;
+    opacity: 0.6;
+    margin-left: 2px;
+  }
+
+  .dash-day-bar-wrap {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .dash-day-bar-track {
+    height: 22px;
+    background: rgba(30,45,61,0.5);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .dash-day-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+    min-width: 0;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .dash-day-bar-label {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.9);
+    white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    letter-spacing: 0.2px;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .dash-day-info {
+    flex-shrink: 0;
+    text-align: right;
+    min-width: 72px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    height: 22px;               /* 与 bar-track 同高，保证行高统一 */
+  }
+  .dash-day-price {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--gold);
+    font-variant-numeric: tabular-nums;
+  }
+  .dash-day-shares {
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dash-day-no-data {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 4px 0;
+    font-style: italic;
+    opacity: 0.6;
+  }
+  .dash-day-zero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .dash-day-zero-bar {
+    flex: 1;
+    height: 18px;
+    background: rgba(30,45,61,0.2);
+    border-radius: 4px;
+    border: 1px dashed rgba(100,116,139,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dash-day-zero-label {
+    font-size: 0.68rem;
+    color: #4a5568;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+
+  .dash-day-zero-spacer {
+    min-width: 72px;
+    flex-shrink: 0;
+  }
+
+  /* 统一行高：所有日期行（含无回购）使用相同高度 */
+  .dash-day-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0;
+    height: 34px;              /* 固定行高，完全相同 */
+  }
+
+  .dash-day-bar-track {
+    height: 22px;
+    background: rgba(30,45,61,0.5);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  /* 无回购单行：高度与有回购行一致 */
+  .dash-day-zero-bar {
+    flex: 1;
+    height: 22px;               /* 与 bar-track 同高 */
+    background: rgba(30,45,61,0.15);
+    border-radius: 4px;
+    border: 1px dashed rgba(100,116,139,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  /* 批量无回购行 */
+
+
+
+
+  /* 卡片底部汇总 */
+  .dash-foot {
+    padding: 10px 16px;
+    border-top: 1px solid var(--border);
+    background: rgba(30,45,61,0.15);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.72rem;
+  }
+
+  .dash-foot-item {
+    color: var(--text-muted);
+  }
+
+  .dash-foot-item strong {
+    font-weight: 600;
+  }
+
+  /* 图例提示 */
+  .dash-legend {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    justify-content: center;
+    padding: 8px 0;
+    margin-bottom: 6px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+
+  .dash-legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    display: inline-block;
+    margin-right: 4px;
+  }
+
+  /* 移动端适配 */
+  @media (max-width: 860px) {
+    .dashboard-row {
+      grid-template-columns: 1fr;
+    }
+
+    .dash-day-date {
+      min-width: 60px;
+      font-size: 0.7rem;
+    }
+
+    .dash-day-amt {
+      min-width: 56px;
+      font-size: 0.7rem;
+    }
+  }
+
+  /* Section */
+  .section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .section-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .section-header h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-header .count {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  /* Daily Buyback Table */
+  .daily-table-wrap {
+    overflow-x: auto;
+    padding: 0;
+  }
+
+  .daily-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+
+  .daily-table thead th {
+    text-align: right;
+    padding: 10px 14px;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--border);
+    background: rgba(30, 45, 61, 0.3);
+    position: sticky;
+    top: 0;
+  }
+
+  .daily-table thead th:first-child {
+    text-align: left;
+    padding-left: 20px;
+  }
+
+  .daily-table thead th:last-child {
+    padding-right: 20px;
+  }
+
+  .daily-table tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(30, 45, 61, 0.3);
+    text-align: right;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .daily-table tbody td:first-child {
+    text-align: left;
+    padding-left: 20px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .daily-table tbody td:last-child {
+    padding-right: 20px;
+    font-weight: 600;
+  }
+
+  .daily-table tbody tr:hover {
+    background: var(--bg-card-hover);
+  }
+
+  .daily-table tbody tr.row-alt {
+    background: rgba(15, 23, 36, 0.6);
+  }
+
+  .daily-table tbody tr.row-alt:hover {
+    background: var(--bg-card-hover);
+  }
+
+  .daily-table .amount-cell {
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  .daily-table .shares-cell {
+    color: #60a5fa;
+  }
+
+  .daily-table .price-cell {
+    color: var(--text-secondary);
+  }
+
+  .daily-table .badge-new {
+    display: inline-block;
+    padding: 1px 6px;
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border-radius: 3px;
+    font-size: 0.65rem;
+    margin-left: 6px;
+    font-weight: 500;
+    vertical-align: middle;
+  }
+
+  /* Daily summary stats row */
+  .daily-stats {
+    display: flex;
+    gap: 20px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(30, 45, 61, 0.15);
+    flex-wrap: wrap;
+  }
+
+  .daily-stat-item {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .daily-stat-item strong {
+    color: var(--text);
+    font-size: 0.9rem;
+  }
+
+  .daily-stat-item .highlight {
+    color: var(--gold);
+    font-weight: 700;
+  }
+
+  .daily-stat-item .highlight-blue {
+    color: #60a5fa;
+    font-weight: 600;
+  }
+
+  /* Data source note */
+  .data-source-note {
+    padding: 10px 20px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: rgba(30, 45, 61, 0.1);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .data-source-note .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .data-source-note .dot.structured { background: var(--green); }
+  .data-source-note .dot.article { background: var(--orange); }
+
+  /* Timeline */
+  .timeline {
+    padding: 8px 0;
+  }
+
+  .timeline-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(30, 45, 61, 0.5);
+    transition: background 0.15s;
+    gap: 12px;
+  }
+
+  .timeline-item:hover {
+    background: var(--bg-card-hover);
+  }
+
+  .timeline-item:last-child {
+    border-bottom: none;
+  }
+
+  .timeline-date {
+    min-width: 100px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    padding-top: 2px;
+  }
+
+  .timeline-dot-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 24px;
+  }
+
+  .timeline-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-top: 7px;
+  }
+
+  .timeline-dot.buyback {
+    background: #f59e0b;
+  }
+
+  .timeline-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .timeline-title {
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--text);
+    word-break: break-all;
+  }
+
+  .timeline-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    font-size: 0.8rem;
+    color: var(--accent);
+    text-decoration: none;
+    transition: opacity 0.15s;
+  }
+
+  .timeline-link:hover {
+    opacity: 0.8;
+  }
+
+  .timeline-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    margin-left: 8px;
+  }
+
+  .tag-buyback {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+  }
+
+  .tag-dividend {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+  }
+
+  .tag-shares {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+  }
+
+  /* Dividend Table */
+  .div-table-wrap {
+    overflow-x: auto;
+    padding: 0 20px 16px;
+  }
+
+  .div-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+
+  .div-table th {
+    text-align: left;
+    padding: 10px 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .div-table td {
+    padding: 12px 12px;
+    border-bottom: 1px solid rgba(30, 45, 61, 0.3);
+    color: var(--text-secondary);
+  }
+
+  .div-table tbody tr:hover {
+    background: var(--bg-card-hover);
+  }
+
+  .div-table .amount {
+    font-weight: 600;
+    color: var(--green);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .div-table .amount-hkd {
+    color: #a78bfa;
+  }
+
+  /* Loading */
+  .loading {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+
+  .loading-spinner {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 12px;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Error / Empty */
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 32px 20px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .footer a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  /* Company header inside section */
+  .company-header {
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .company-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--border);
+  }
+
+  .company-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+  }
+
+  .company-name {
+    font-weight: 600;
+    font-size: 1rem;
+  }
+
+  .company-code {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-left: 6px;
+  }
+
+  .last-update {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  /* Pagination for buyback table */
+  .table-footer {
+    padding: 10px 20px;
+    text-align: center;
+    border-top: 1px solid var(--border);
+  }
+
+  .table-footer button {
+    padding: 6px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    cursor: pointer;
+    margin: 0 4px;
+    transition: all 0.15s;
+  }
+
+  .table-footer button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .table-footer button:disabled {
+    opacity: 0.3;
+    cursor: default;
+    border-color: var(--border);
+    color: var(--text-muted);
+  }
+
+  .table-footer .page-info {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin: 0 8px;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .summary-row {
+      grid-template-columns: 1fr;
+    }
+    .header h1 {
+      font-size: 1.4rem;
+    }
+    .timeline-date {
+      min-width: 80px;
+      font-size: 0.75rem;
+    }
+    .tab-btn {
+      padding: 10px 16px;
+      font-size: 0.9rem;
+    }
+    .daily-table {
+      font-size: 0.8rem;
+    }
+    .daily-table thead th,
+    .daily-table tbody td {
+      padding: 8px 10px;
+    }
+    .div-table {
+      font-size: 0.78rem;
+    }
+    .daily-stats {
+      flex-direction: column;
+      gap: 8px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>港股回购&分红追踪</h1>
+  <p class="subtitle">腾讯控股 · 小米集团 · 泡泡玛特 —— 数据来源：香港交易所官方公告</p>
+  <span class="badge">🛡️ HKEX 披露易</span>
+</div>
+
+<div class="container">
+  <!-- 天数选择器 -->
+  <div class="day-selector" id="daySelector">
+    <span class="day-selector-label">显示最近</span>
+    <button class="day-selector-btn active" onclick="switchDashboardDays(3)">3 天</button>
+    <button class="day-selector-btn" onclick="switchDashboardDays(5)">5 天</button>
+    <button class="day-selector-btn" onclick="switchDashboardDays(10)">10 天</button>
+    <button class="day-selector-btn" onclick="switchDashboardDays(20)">20 天</button>
+    <span class="day-selector-label">交易日</span>
+  </div>
+
+  <!-- 最近3日回购面板 -->
+  <div class="dashboard-row" id="dashboardRow">
+    <div class="dash-card"><div class="loading" style="padding:24px;"><div class="loading-spinner"></div></div></div>
+    <div class="dash-card"><div class="loading" style="padding:24px;"><div class="loading-spinner"></div></div></div>
+    <div class="dash-card"><div class="loading" style="padding:24px;"><div class="loading-spinner"></div></div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" id="tabs"></div>
+
+  <!-- Content -->
+  <div id="content">
+    <div class="loading">
+      <div class="loading-spinner"></div>
+      <p>正在从港交所获取数据...</p>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>数据来源：<a href="https://www.hkexnews.hk" target="_blank">香港交易所披露易 (HKEXnews)</a> · 回购明细由 NeoData 金融数据服务提供</p>
+    <p style="margin-top:4px;">每30分钟更新一次 · 仅供信息参考，不构成投资建议</p>
+  </div>
+</div>
+
+<script>
+  const LOGO_MAP = {
+    hk00700: '/finance-tracker/logos/tencent.png',
+    hk01810: '/finance-tracker/logos/xiaomi.png',
+    hk09992: '/finance-tracker/logos/popmart.png',
+  };
+// Configuration
+const COMPANIES = {
+  'hk00700': { key: 'hk00700', name: '腾讯控股', code: '00700', cssClass: 'tencent', shortName: '腾讯' },
+  'hk01810': { key: 'hk01810', name: '小米集团', code: '01810', cssClass: 'xiaomi', shortName: '小米' },
+  'hk09992': { key: 'hk09992', name: '泡泡玛特', code: '09992', cssClass: 'popmart', shortName: '泡泡玛特' },
+};
+
+let currentTab = 'hk00700';
+let allData = null;
+let buybackDailyData = null;
+let dailyPage = 1;
+let dashboardDays = 3;
+let buybackDailyCache = {};
+const DAILY_PAGE_SIZE = 15;
+
+// Fetch all data — pre-fetch all 4 day-count variants for instant switching
+async function fetchData() {
+  try {
+    // Fetch all data plus all 4 day-count variants in parallel
+    const [allResp, d3Resp, d5Resp, d10Resp, d20Resp] = await Promise.all([
+      fetch('/finance-tracker/api/all'),
+      fetch('/finance-tracker/api/buyback-daily?days=3'),
+      fetch('/finance-tracker/api/buyback-daily?days=5'),
+      fetch('/finance-tracker/api/buyback-daily?days=10'),
+      fetch('/finance-tracker/api/buyback-daily?days=20'),
+    ]);
+
+    if (!allResp.ok) throw new Error('API error: ' + allResp.status);
+    allData = await allResp.json();
+
+    if (d3Resp.ok) buybackDailyCache[3] = await d3Resp.json();
+    if (d5Resp.ok) buybackDailyCache[5] = await d5Resp.json();
+    if (d10Resp.ok) buybackDailyCache[10] = await d10Resp.json();
+    if (d20Resp.ok) buybackDailyCache[20] = await d20Resp.json();
+
+    buybackDailyData = buybackDailyCache[dashboardDays] || buybackDailyCache[3];
+    renderAll();
+  } catch (err) {
+    document.getElementById('content').innerHTML = `
+      <div class="empty">
+        <p>⚠️ 数据加载失败</p>
+        <p style="font-size:0.8rem;margin-top:8px;">${err.message}</p>
+        <button onclick="fetchData()" style="margin-top:12px;padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;">重试</button>
+      </div>`;
+  }
+}
+
+// Format large number
+function formatAmount(amount) {
+  if (amount == null || isNaN(amount)) return '-';
+  if (amount >= 1e8) {
+    return (amount / 1e8).toFixed(2) + ' 亿';
+  }
+  if (amount >= 1e4) {
+    return (amount / 1e4).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' 万';
+  }
+  return amount.toLocaleString('zh-CN');
+}
+
+function formatShares(shares) {
+  if (shares == null || isNaN(shares)) return '-';
+  if (shares >= 1e8) {
+    return (shares / 1e8).toFixed(2) + ' 亿';
+  }
+  if (shares >= 1e4) {
+    const wan = shares / 1e4;
+    return wan >= 100 ? Math.round(wan).toLocaleString('zh-CN') + ' 万' : wan.toFixed(2) + ' 万';
+  }
+  return Math.round(shares).toLocaleString('zh-CN');
+}
+
+function formatPrice(price) {
+  if (price == null || isNaN(price)) return '-';
+  return price.toFixed(2);
+}
+
+// Generate HKEX PDF link
+function getHkexPdfUrl(noticeId) {
+  if (!noticeId) return '#';
+  const match = noticeId.match(/HKEX-EPS-(\d{8})-(\d+)/);
+  if (match) {
+    const date = match[1];
+    const id = match[2];
+    return `https://www1.hkexnews.hk/listedco/listconews/sehk/${date.slice(0,4)}/${date.slice(4,6)}${date.slice(6,8)}/${date}${id}.pdf`;
+  }
+  return `https://www.hkexnews.hk`;
+}
+
+// ========== 最近3日回购可视化面板 ==========
+
+// 获取日期对应的星期简称
+function getWeekday(dateStr) {
+  try {
+    const d = new Date(dateStr + 'T00:00:00+08:00');
+    return ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
+  } catch(e) { return ''; }
+}
+
+// 格式化日期为简短显示 (MM-DD)
+function formatShortDate(dateStr) {
+  const parts = dateStr.split('-');
+  if (parts.length === 3) return parts[1] + '-' + parts[2];
+  return dateStr;
+}
+
+// 格式化金额为紧凑形式
+function formatCompactAmount(amount) {
+  if (amount == null || isNaN(amount)) return '-';
+  if (amount >= 1e8) return (amount / 1e8).toFixed(amount >= 1e9 ? 2 : 2) + '亿';
+  if (amount >= 1e4) return Math.round(amount / 1e4).toLocaleString('zh-CN') + '万';
+  return Math.round(amount).toLocaleString('zh-CN');
+}
+
+// 渲染仪表盘（最近N个交易日回购面板，含零回购日）
+function renderDashboard() {
+  const row = document.getElementById('dashboardRow');
+  if (!buybackDailyData) {
+    row.innerHTML = '<div class="dash-card"><div class="loading" style="padding:24px;"><div class="loading-spinner"></div></div></div>'.repeat(3);
+    return;
+  }
+
+  const stockOrder = ['hk00700', 'hk01810', 'hk09992'];
+const COMPANY_COLORS = { hk00700: '#1E6FFF', hk01810: '#FF6900', hk09992: '#FF0A0A' };
+const COMPANY_COLORS_LIGHT = { hk00700: 'rgba(30,111,255,0.12)', hk01810: 'rgba(255,105,0,0.12)', hk09992: 'rgba(255,10,10,0.12)' };
+
+  const stockData = {};
+
+  for (const code of stockOrder) {
+    const info = COMPANIES[code];
+    const dailyInfo = buybackDailyData[code];
+    const tradingDays = dailyInfo ? (dailyInfo.tradingDays || []) : [];
+    stockData[code] = { info, dailyInfo, tradingDays };
+  }
+
+  // helpers --------------------------------------------------------------
+  function renderBuybackRow(dateStr, item, color, colorLight, companyMax) {
+    const pct = companyMax > 0 ? Math.max((item.amount || 0) / companyMax * 100, 2) : 0;
+    const amtStr = formatCompactAmount(item.amount);
+    // 回购均价
+    const sharesWan = item.sharesWan || 0;
+    const avgPrice = sharesWan > 0 ? (item.amount / (sharesWan * 10000)) : 0;
+    const avgStr = avgPrice > 0 ? 'HK$ ' + avgPrice.toFixed(2) : '';
+    const sharesStr = item.sharesWan != null
+      ? item.sharesWan.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '万股'
+      : '';
+    return `
+          <div class="dash-day-row">
+            <div class="dash-day-date">
+              ${formatShortDate(dateStr)}
+              <span class="weekday">${getWeekday(dateStr)}</span>
+            </div>
+            <div class="dash-day-bar-wrap">
+              <div class="dash-day-bar-track">
+                <div class="dash-day-bar-fill" style="width:${pct}%;background:linear-gradient(90deg,${colorLight},${color})"></div>
+                <span class="dash-day-bar-label">HK$ ${amtStr}</span>
+              </div>
+            </div>
+            <div class="dash-day-info">
+              ${avgStr ? '<span class="dash-day-price">' + avgStr + '</span>' : ''}
+              ${sharesStr ? '<span class="dash-day-shares">' + sharesStr + '</span>' : ''}
+            </div>
+          </div>`;
+  }
+
+  function renderNoBuybackRow(dateStr) {
+    return `
+          <div class="dash-day-row">
+            <div class="dash-day-date">
+              ${formatShortDate(dateStr)}
+              <span class="weekday">${getWeekday(dateStr)}</span>
+            </div>
+            <div class="dash-day-zero-bar">
+              <span class="dash-day-zero-label">无回购</span>
+            </div>
+            <div class="dash-day-zero-spacer"></div>
+          </div>`;
+  }
+
+  function renderEllipsisRow(skipCount) {
+    return `
+          <div class="dash-day-row">
+            <div class="dash-day-date">
+              <span style="color:#4a5568;font-size:0.7rem;">···</span>
+            </div>
+            <div class="dash-day-zero-bar" style="border-style:dotted;">
+              <span class="dash-day-zero-label">${skipCount} 日无回购</span>
+            </div>
+            <div class="dash-day-zero-spacer"></div>
+          </div>`;
+  }
+
+  function collapseConsecutive(list, color, colorLight, companyMax) {
+    // list is an array of {date, buyback} objects
+    // Returns array of HTML strings, collapsing consecutive no-buyback runs
+    const result = [];
+    let i = 0;
+    while (i < list.length) {
+      const td = list[i];
+      if (td.buyback) {
+        result.push(renderBuybackRow(td.date, td.buyback, color, colorLight, companyMax));
+        i++;
+        continue;
+      }
+      // Count consecutive no-buyback days
+      let j = i;
+      while (j < list.length && !list[j].buyback) j++;
+      const count = j - i;
+      if (count <= 2) {
+        // Show each individually
+        for (let k = i; k < j; k++) {
+          result.push(renderNoBuybackRow(list[k].date));
+        }
+      } else {
+        // 3+ consecutive → show first, ellipsis, last
+        result.push(renderNoBuybackRow(list[i].date));
+        result.push(renderEllipsisRow(count - 2));
+        result.push(renderNoBuybackRow(list[j - 1].date));
+      }
+      i = j;
+    }
+    return result;
+  }
+
+  let html = '';
+
+  for (const code of stockOrder) {
+    const { info, dailyInfo, tradingDays } = stockData[code];
+    if (!dailyInfo) continue;
+
+    const color = COMPANY_COLORS[code];
+    const colorLight = COMPANY_COLORS_LIGHT[code];
+    const totalAmount = dailyInfo.totalAmount || 0;
+    const daysWithBuyback = dailyInfo.totalDays || 0;
+    const totalDays = tradingDays.length;
+    const allBuybacks = dailyInfo.dailyBuybacks || [];
+
+    // 本公司范围内的最大单日回购金额（用于 bar 比例）
+    const companyAmounts = [];
+    for (const td of tradingDays) {
+      if (td.buyback && td.buyback.amount) companyAmounts.push(td.buyback.amount);
+    }
+    for (const bb of allBuybacks) {
+      if (bb.amount) companyAmounts.push(bb.amount);
+    }
+    const companyMax = Math.max(...companyAmounts, 1);
+
+    // ── Split: front 2/3 normal, last 1/3 fallback to recent buybacks ──
+    const lastThird = Math.max(1, Math.floor(totalDays / 3));
+    const frontLen = totalDays - lastThird;
+    const frontDays = tradingDays.slice(0, frontLen);
+    const tailDays  = tradingDays.slice(frontLen);
+
+    // Track dates already shown (for dedup)
+    const shownDates = new Set();
+    for (const td of frontDays) {
+      if (td.buyback) shownDates.add(td.date);
+    }
+
+    // ── 1) Front section: collapse consecutive no-buyback ──
+    const frontRows = collapseConsecutive(frontDays, color, colorLight, companyMax);
+
+    // ── 2) Tail section: replace no-buyback days with recent buybacks ──
+    // Collect recent buyback candidates not yet shown
+    const recentCandidates = [];
+    for (const bb of allBuybacks) {
+      if (!shownDates.has(bb.date)) {
+        recentCandidates.push(bb);
+        if (recentCandidates.length >= lastThird) break;
+      }
+    }
+
+    const tailRows = [];
+    for (let i = 0; i < tailDays.length; i++) {
+      const td = tailDays[i];
+      if (td.buyback) {
+        tailRows.push(renderBuybackRow(td.date, td.buyback, color, colorLight, companyMax));
+      } else if (recentCandidates.length > 0) {
+        const bb = recentCandidates.shift();
+        tailRows.push(renderBuybackRow(bb.date, bb, color, colorLight, companyMax));
+      } else {
+        tailRows.push(renderNoBuybackRow(td.date));
+      }
+    }
+
+    // N-day buyback funds total
+    const nDayAmount = tradingDays.reduce((s, td) => s + (td.buyback ? (td.buyback.amount || 0) : 0), 0);
+    const allTotalAmount = allBuybacks.reduce((s, i) => s + (i.amount || 0), 0);
+    const allTotalDays = allBuybacks.length;
+
+    html += `
+      <div class="dash-card" style="border-top:3px solid ${color}">
+        <div class="dash-head">
+          <div class="dash-avatar"><img src="${LOGO_MAP[code]}" alt="${info.name}"></div>
+          <div>
+            <div class="dash-name">${info.name}</div>
+            <div class="dash-code">${info.code}.HK</div>
+          </div>
+          <div class="dash-badge" style="background:${colorLight};color:${color}">
+            ${daysWithBuyback}/${totalDays}天
+          </div>
+        </div>
+        <div class="dash-days">
+          ${frontRows.join('\n')}
+          ${tailRows.join('\n')}
+        </div>
+        <div class="dash-foot">
+          <div class="dash-foot-item">
+            ${dashboardDays}日回购 <strong style="color:${color}">HK$ ${formatCompactAmount(nDayAmount)}</strong>
+          </div>
+          <div class="dash-foot-item">
+            累计${allTotalDays}天 <strong style="color:var(--gold)">HK$ ${formatCompactAmount(allTotalAmount)}</strong>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  row.innerHTML = html;
+
+  // Animate bars after render
+  requestAnimationFrame(() => {
+    const fills = row.querySelectorAll('.dash-day-bar-fill');
+    fills.forEach((fill, i) => {
+      const targetWidth = fill.style.width;
+      fill.style.width = '0%';
+      setTimeout(() => { fill.style.width = targetWidth; }, 50 + i * 30);
+    });
+  });
+}
+
+
+function switchDashboardDays(n) {
+  dashboardDays = n;
+  // Update button states
+  const btns = document.querySelectorAll('.day-selector-btn');
+  btns.forEach(b => b.classList.remove('active'));
+  btns.forEach(b => {
+    if (parseInt(b.textContent) === n) b.classList.add('active');
+  });
+  // Use pre-fetched cache — zero network latency
+  if (buybackDailyCache[n]) {
+    buybackDailyData = buybackDailyCache[n];
+    renderDashboard();
+  }
+}
+
+// 仅刷新仪表盘数据（切换天数时）
+// Now uses pre-fetched cache — falls back to network only if cache miss
+async function fetchDashboardOnly() {
+  if (buybackDailyCache[dashboardDays]) {
+    buybackDailyData = buybackDailyCache[dashboardDays];
+    renderDashboard();
+    return;
+  }
+  try {
+    const resp = await fetch('/finance-tracker/api/buyback-daily?days=' + dashboardDays);
+    if (resp.ok) {
+      buybackDailyData = await resp.json();
+      buybackDailyCache[dashboardDays] = buybackDailyData;
+      renderDashboard();
+    }
+  } catch (err) {
+    console.error('Dashboard refresh failed:', err);
+  }
+}
+
+// Render tabs
+function renderTabs() {
+  const tabs = document.getElementById('tabs');
+  let html = '';
+  for (const [code, info] of Object.entries(COMPANIES)) {
+    html += `
+      <button class="tab-btn ${info.cssClass} ${code === currentTab ? 'active' : ''}" onclick="switchTab('${code}')">
+        <span class="tab-dot"></span>
+        ${info.name}
+      </button>`;
+  }
+  tabs.innerHTML = html;
+}
+
+// Switch tab
+function switchTab(code) {
+  currentTab = code;
+  dailyPage = 1;
+  renderTabs();
+  renderCompany(code);
+}
+
+// Render daily buyback table
+function renderDailyBuybackTable(code) {
+  const dailyInfo = buybackDailyData && buybackDailyData[code];
+  const items = dailyInfo ? (dailyInfo.dailyBuybacks || []) : [];
+
+  if (items.length === 0) {
+    return `
+      <div class="data-source-note">
+        <span>暂无每日回购明细数据</span>
+      </div>
+      <div class="empty" style="padding:20px;">该股票暂无结构化每日回购数据，请查看下方回购公告获取定性信息</div>`;
+  }
+
+  const dataSource = dailyInfo.dataSource || 'structured';
+  const sourceLabel = dataSource === 'structured' ? 'HKEX API 结构化数据' :
+    dataSource === 'article_table' ? '从新闻公告解析（表格格式）' :
+    dataSource === 'article_single' ? '从新闻公告解析（单日数据）' : '未知来源';
+  const sourceColor = dataSource === 'structured' ? 'structured' : 'article';
+  const sourceNote = dataSource === 'structured' ?
+    '数据来源：港交所 API 结构化数据，准确可靠' :
+    '数据来源：从公开新闻/公告中解析，可能存在缺失';
+
+  // Pagination
+  const totalPages = Math.ceil(items.length / DAILY_PAGE_SIZE);
+  const startIdx = (dailyPage - 1) * DAILY_PAGE_SIZE;
+  const pageItems = items.slice(startIdx, startIdx + DAILY_PAGE_SIZE);
+
+  let tableRows = '';
+  pageItems.forEach((item, idx) => {
+    const rowClass = (startIdx + idx) % 2 === 1 ? 'row-alt' : '';
+    const isRecent = startIdx + idx < 3;
+    const sharesStr = formatShares(item.shares);
+    const amountHKD = item.amount ? formatAmount(item.amount) : '-';
+    const priceStr = formatPrice(item.avgPrice);
+
+    tableRows += `
+      <tr class="${rowClass}">
+        <td>${item.date}${isRecent ? '<span class="badge-new">NEW</span>' : ''}</td>
+        <td class="shares-cell">${sharesStr} 股</td>
+        <td class="price-cell">HK$ ${priceStr}</td>
+        <td class="amount-cell">HK$ ${amountHKD}</td>
+      </tr>`;
+  });
+
+  // Summary stats
+  const totalAmount = dailyInfo.totalAmount || items.reduce((s, i) => s + (i.amount || 0), 0);
+  const totalShares = dailyInfo.totalShares || items.reduce((s, i) => s + (i.shares || 0), 0);
+
+  return `
+    <div class="daily-stats">
+      <div class="daily-stat-item">
+        累计回购 <strong class="highlight-blue">${formatShares(totalShares)} 股</strong>
+      </div>
+      <div class="daily-stat-item">
+        累计金额 <strong class="highlight">HK$ ${formatAmount(totalAmount)}</strong>
+      </div>
+      <div class="daily-stat-item">
+        回购天数 <strong>${items.length} 天</strong>
+      </div>
+      <div class="daily-stat-item">
+        日均回购 <strong class="highlight-blue">${items.length > 0 ? formatShares(Math.round(totalShares / items.length)) : '-'} 股</strong>
+      </div>
+    </div>
+    <div class="data-source-note">
+      <span class="dot ${sourceColor}"></span>
+      <span>${sourceNote}</span>
+    </div>
+    <div class="daily-table-wrap">
+      <table class="daily-table">
+        <thead>
+          <tr>
+            <th>日期</th>
+            <th>回购股数</th>
+            <th>均价 (港元)</th>
+            <th>回购金额 (港元)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRows}
+        </tbody>
+      </table>
+    </div>
+    ${totalPages > 1 ? `
+    <div class="table-footer">
+      <button onclick="dailyPage=1;switchTab('${code}')" ${dailyPage === 1 ? 'disabled' : ''}>首页</button>
+      <button onclick="dailyPage=${Math.max(1, dailyPage - 1)};switchTab('${code}')" ${dailyPage === 1 ? 'disabled' : ''}>上一页</button>
+      <span class="page-info">第 ${dailyPage} / ${totalPages} 页</span>
+      <button onclick="dailyPage=${Math.min(totalPages, dailyPage + 1)};switchTab('${code}')" ${dailyPage === totalPages ? 'disabled' : ''}>下一页</button>
+      <button onclick="dailyPage=${totalPages};switchTab('${code}')" ${dailyPage === totalPages ? 'disabled' : ''}>末页</button>
+    </div>` : ''}
+  `;
+}
+
+// Render single company
+function renderCompany(code) {
+  if (!allData || !allData[code]) return;
+
+  const data = allData[code];
+  const content = document.getElementById('content');
+
+  let html = '';
+
+  // Company header
+  const avatarChar = data.name.charAt(0);
+  html += `
+    <div class="section">
+      <div class="company-header">
+        <div class="company-avatar"><img src="${LOGO_MAP[code]}" alt="${data.name}"></div>
+        <span class="company-name">${data.name}</span>
+        <span class="company-code">${data.code}.HK</span>
+        <span class="last-update">更新于 ${new Date(data.lastUpdate).toLocaleString('zh-CN')}</span>
+      </div>
+  `;
+
+  // Daily Buyback Summary Table (NEW)
+  html += `
+      <div class="section-header">
+        <h3>📊 每日回购汇总 <span class="count">（股数 / 均价 / 金额明细）</span></h3>
+      </div>
+  `;
+  html += renderDailyBuybackTable(code);
+
+  html += `</div>`; // Close first section
+
+  // Buyback Notices Timeline
+  const buybackNotices = data.buybackNotices || [];
+  html += `
+    <div class="section">
+      <div class="section-header">
+        <h3>📋 回购公告 <span class="count">（近${buybackNotices.length}条，来源：港交所翌日披露报表）</span></h3>
+      </div>
+  `;
+
+  if (buybackNotices.length === 0) {
+    html += `<div class="empty">暂无回购公告数据</div>`;
+  } else {
+    html += `<div class="timeline">`;
+    buybackNotices.forEach(n => {
+      const time = n.time ? n.time.slice(0, 10) : '';
+      const pdfUrl = getHkexPdfUrl(n.id);
+      const isBuyback = n.title.includes('股份购回') || n.title.includes('股份回购') || n.title.includes('购回');
+      html += `
+        <div class="timeline-item">
+          <div class="timeline-date">${time}</div>
+          <div class="timeline-dot-wrap">
+            <div class="timeline-dot ${isBuyback ? 'buyback' : ''}"></div>
+          </div>
+          <div class="timeline-content">
+            <div class="timeline-title">
+              ${n.title}
+              ${isBuyback ? '<span class="timeline-tag tag-buyback">股份购回</span>' : ''}
+              ${n.title.includes('翌日披露') ? '<span class="timeline-tag tag-shares">翌日披露</span>' : ''}
+            </div>
+            <a class="timeline-link" href="${pdfUrl}" target="_blank" rel="noopener">
+              📄 查看港交所公告PDF ↗
+            </a>
+          </div>
+        </div>`;
+    });
+    html += `</div>`;
+  }
+
+  html += `</div>`; // Close second section
+
+  // Dividend History
+  const dividends = data.dividends || [];
+  html += `
+    <div class="section">
+      <div class="section-header">
+        <h3>💰 分红历史 <span class="count">（近${dividends.length}次）</span></h3>
+      </div>
+  `;
+
+  if (dividends.length === 0) {
+    html += `<div class="empty">暂无分红数据</div>`;
+  } else {
+    html += `
+      <div class="div-table-wrap">
+        <table class="div-table">
+          <thead>
+            <tr>
+              <th>报告期截止</th>
+              <th>除权日</th>
+              <th>派息日</th>
+              <th>每股派息 (港元)</th>
+              <th>分红方案</th>
+            </tr>
+          </thead>
+          <tbody>`;
+    dividends.forEach(d => {
+      html += `
+            <tr>
+              <td>${d.reportEndDate}</td>
+              <td>${d.exDiviDate}</td>
+              <td>${d.cashPayDate}</td>
+              <td class="amount amount-hkd">HK$ ${d.cashDivPerShare.toFixed(4)}</td>
+              <td style="max-width:300px;white-space:normal;">${d.dividendPlan || '-'}</td>
+            </tr>`;
+    });
+    html += `
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  html += `</div>`;
+  content.innerHTML = html;
+}
+
+// Render all
+function renderAll() {
+  renderDashboard();
+  renderTabs();
+  renderCompany(currentTab);
+}
+
+// Init
+fetchData();
+
+// Auto refresh every 30 minutes
+setInterval(fetchData, 30 * 60 * 1000);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Background -->
+  <rect width="64" height="64" rx="14" fill="#E91E63"/>
+  <!-- Pop Mart character face -->
+  <g transform="translate(32,30)" fill="#fff">
+    <!-- Face circle -->
+    <circle cx="0" cy="0" r="14"/>
+    <!-- Eyes -->
+    <circle cx="-5" cy="-3" r="2.5" fill="#E91E63"/>
+    <circle cx="5" cy="-3" r="2.5" fill="#E91E63"/>
+    <!-- Eye highlights -->
+    <circle cx="-4" cy="-4" r="0.8" fill="#fff"/>
+    <circle cx="6" cy="-4" r="0.8" fill="#fff"/>
+    <!-- Mouth (smile) -->
+    <path d="M-5 4 Q0 9 5 4" stroke="#E91E63" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- Blush -->
+    <ellipse cx="-8" cy="1" rx="3" ry="1.5" fill="#FF8AAC" opacity="0.5"/>
+    <ellipse cx="8" cy="1" rx="3" ry="1.5" fill="#FF8AAC" opacity="0.5"/>
+  </g>
+  <!-- Ears -->
+  <circle cx="16" cy="14" r="6" fill="#E91E63"/>
+  <circle cx="48" cy="14" r="6" fill="#E91E63"/>
+  <circle cx="16" cy="14" r="3.5" fill="#FF8AAC" opacity="0.4"/>
+  <circle cx="48" cy="14" r="3.5" fill="#FF8AAC" opacity="0.4"/>
+</svg>
