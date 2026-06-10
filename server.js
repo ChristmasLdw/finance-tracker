@@ -6,6 +6,16 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3008;
 
+// Path prefix middleware: strip /finance-tracker prefix for direct access (port 3008)
+// This allows the page to work both via nginx proxy (https://christmasldw.com/finance-tracker/)
+// and direct Node.js access (http://christmasldw.com:3008/)
+app.use((req, res, next) => {
+  if (req.url.startsWith('/finance-tracker')) {
+    req.url = req.url.slice('/finance-tracker'.length) || '/';
+  }
+  next();
+});
+
 const WESTOK_SCRIPT = '/var/www/finance-tracker/scripts/westock-data.js';
 const CACHE_DIR = '/var/www/finance-tracker/cache';
 const NEODATA_TOKEN_FILE = '/var/www/finance-tracker/.neodata_token';
