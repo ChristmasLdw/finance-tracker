@@ -1057,16 +1057,11 @@ function formatPrice(price) {
   return price.toFixed(2);
 }
 
-// Generate HKEX PDF link
-function getHkexPdfUrl(noticeId) {
+// Generate HKEX search page link for the notice
+function getHkexPdfUrl(noticeId, stockCode) {
   if (!noticeId) return '#';
-  const match = noticeId.match(/HKEX-EPS-(\d{8})-(\d+)/);
-  if (match) {
-    const date = match[1];
-    const id = match[2];
-    return `https://www1.hkexnews.hk/listedco/listconews/sehk/${date.slice(0,4)}/${date.slice(4,6)}${date.slice(6,8)}/${date}${id}.pdf`;
-  }
-  return `https://www.hkexnews.hk`;
+  const code = stockCode || '01810';
+  return `https://www.hkexnews.hk/listedco/listconews/advancedsearch/search_active_main.aspx?stock_id=${code}&category=0&period=3`;
 }
 
 // ========== 最近3日回购可视化面板 ==========
@@ -1507,7 +1502,7 @@ function renderCompany(code) {
     html += `<div class="timeline">`;
     buybackNotices.forEach(n => {
       const time = n.time ? n.time.slice(0, 10) : '';
-      const pdfUrl = getHkexPdfUrl(n.id);
+      const pdfUrl = getHkexPdfUrl(n.id, n.symbol ? n.symbol.replace('hk', '') : null);
       const isBuyback = n.title.includes('股份购回') || n.title.includes('股份回购') || n.title.includes('购回');
       html += `
         <div class="timeline-item">
@@ -1522,7 +1517,7 @@ function renderCompany(code) {
               ${n.title.includes('翌日披露') ? '<span class="timeline-tag tag-shares">翌日披露</span>' : ''}
             </div>
             <a class="timeline-link" href="${pdfUrl}" target="_blank" rel="noopener">
-              📄 查看港交所公告PDF ↗
+              📄 在港交所查看公告 ↗
             </a>
           </div>
         </div>`;
