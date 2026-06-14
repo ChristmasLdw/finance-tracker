@@ -1057,11 +1057,10 @@ function formatPrice(price) {
   return price.toFixed(2);
 }
 
-// Generate HKEX search page link for the notice
+// Generate HKEX search page link
 function getHkexPdfUrl(noticeId, stockCode) {
   if (!noticeId) return '#';
-  // Link to HKEX title search page (Chinese version)
-  return `https://www.hkexnews.hk/listedco/listconews/advancedsearch/search_active_main_c.aspx`;
+  return `https://www1.hkexnews.hk/search/titlesearch.xhtml?lang=zh`;
 }
 
 // ========== 最近3日回购可视化面板 ==========
