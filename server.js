@@ -24,7 +24,7 @@ const NEODATA_ENDPOINT = 'https://copilot.tencent.com/agenttool/v1/neodata';
 // Companies config
 const COMPANIES = {
   'hk00700': { name: '腾讯控股', code: '00700', neodataQuery: '腾讯控股 00700.HK 2026年股份回购明细 每日回购股数和金额' },
-  'hk01810': { name: '小米集团', code: '01810', neodataQuery: '小米集团-W 01810 公司回购' },
+  'hk01810': { name: '小米集团', code: '01810', neodataQuery: '小米集团-W 01810.HK 2026年股份回购明细 每日回购股数和金额' },
   'hk09992': { name: '泡泡玛特', code: '09992', neodataQuery: '泡泡玛特 09992.HK 2026年股票回购明细 每日回购股数和金额' },
 };
 
