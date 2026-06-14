@@ -1061,7 +1061,15 @@ function formatPrice(price) {
 function getHkexPdfUrl(noticeId, stockCode) {
   if (!noticeId) return '#';
   const code = stockCode || '01810';
-  return `https://www.hkexnews.hk/listedco/listconews/advancedsearch/search_active_main.aspx?stock_id=${code}&category=0&period=3`;
+  const match = noticeId.match(/HKEX-EPS-(\d{8})-(\d+)/);
+  if (match) {
+    const date = match[1];
+    const id = match[2];
+    // Use Google to search for the HKEX PDF
+    const query = encodeURIComponent(`site:hkexnews.hk ${code} ${date} 翌日披露报表`);
+    return `https://www.google.com/search?q=${query}`;
+  }
+  return `https://www.hkexnews.hk`;
 }
 
 // ========== 最近3日回购可视化面板 ==========
