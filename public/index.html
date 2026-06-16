@@ -898,6 +898,176 @@
     margin: 0 8px;
   }
 
+  /* ===== K线图模块 ===== */
+  .kline-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+
+  .kline-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .kline-title h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .kline-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    display: block;
+  }
+
+  .kline-controls {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .kline-tabs {
+    display: flex;
+    gap: 4px;
+    background: rgba(30, 45, 61, 0.3);
+    padding: 4px;
+    border-radius: 8px;
+  }
+
+  .kline-tab {
+    padding: 6px 14px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .kline-tab:hover {
+    color: var(--text);
+    background: rgba(59, 130, 246, 0.1);
+  }
+
+  .kline-tab.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .kline-legend {
+    padding: 12px 20px;
+    display: flex;
+    gap: 20px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+  }
+
+  .kline-container {
+    height: 500px;
+    position: relative;
+  }
+
+  .kline-info {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    display: none;
+  }
+
+  .kline-info.visible {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .kline-info-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .kline-info-label {
+    color: var(--text-muted);
+  }
+
+  .kline-info-value {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .kline-info-value.up {
+    color: var(--green);
+  }
+
+  .kline-info-value.down {
+    color: var(--red);
+  }
+
+  /* 事件详情弹窗 */
+  .event-tooltip {
+    position: absolute;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    box-shadow: var(--shadow);
+    z-index: 100;
+    min-width: 200px;
+    font-size: 0.85rem;
+  }
+
+  .event-tooltip-title {
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .event-tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    color: var(--text-secondary);
+  }
+
+  .event-tooltip-label {
+    color: var(--text-muted);
+  }
+
+  .event-tooltip-value {
+    font-weight: 500;
+  }
+
   /* Responsive */
   @media (max-width: 768px) {
     .summary-row {
@@ -950,11 +1120,39 @@
     <span class="day-selector-label">交易日</span>
   </div>
 
-  <!-- 最近3日回购面板 -->
+  <!-- 最近N日回购面板 -->
   <div class="dashboard-row" id="dashboardRow">
     <div class="dash-card"><div class="loading" style="padding:24px;"><div class="loading-spinner"></div></div></div>
     <div class="dash-card"><div class="loading" style="padding:24px;"><div class="loading-spinner"></div></div></div>
     <div class="dash-card"><div class="loading" style="padding:24px;"><div class="loading-spinner"></div></div></div>
+  </div>
+
+  <!-- K线图模块 -->
+  <div class="kline-section" id="klineSection">
+    <div class="kline-header">
+      <div class="kline-title">
+        <h3>📈 股价走势与回购/分红事件</h3>
+        <span class="kline-subtitle" id="klineSubtitle">腾讯控股 (00700.HK)</span>
+      </div>
+      <div class="kline-controls">
+        <div class="kline-tabs" id="klineCompanyTabs">
+          <button class="kline-tab active" data-code="hk00700">腾讯</button>
+          <button class="kline-tab" data-code="hk01810">小米</button>
+          <button class="kline-tab" data-code="hk09992">泡泡玛特</button>
+        </div>
+      </div>
+    </div>
+    <div class="kline-legend">
+      <span class="legend-item"><span class="legend-dot" style="background:#f59e0b;border-radius:50%;"></span>回购日</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#ef4444;border-radius:50%;"></span>分红日</span>
+    </div>
+    <div class="kline-container" id="klineContainer">
+      <div class="loading" style="padding:60px;">
+        <div class="loading-spinner"></div>
+        <p>正在加载K线数据...</p>
+      </div>
+    </div>
+    <div class="kline-info" id="klineInfo"></div>
   </div>
 
   <!-- Tabs -->
@@ -975,6 +1173,7 @@
   </div>
 </div>
 
+<script src="/lightweight-charts.standalone.production.js"></script>
 <script>
   const LOGO_MAP = {
     hk00700: '/finance-tracker/logos/tencent.png',
@@ -1026,6 +1225,190 @@ async function fetchData() {
         <button onclick="fetchData()" style="margin-top:12px;padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;">重试</button>
       </div>`;
   }
+}
+
+// ========== K线图模块 ==========
+let klineChart = null;
+let klineSeries = null;
+let buybackMarkerSeries = null;
+let currentBuybackMap = {};
+let currentKlineCode = 'hk00700';
+let currentKlinePeriod = '5y';
+let klineDataCache = {};
+
+function initKlineChart() {
+  var container = document.getElementById('klineContainer');
+  if (!container) { console.log('[kline] container not found'); return; }
+  if (!window.LightweightCharts) {
+    console.log('[kline] LightweightCharts not loaded');
+    container.innerHTML = '<div class="empty" style="padding:60px;"><p>⚠️ 图表库加载失败，请刷新页面</p></div>';
+    return;
+  }
+
+  console.log('[kline] initializing chart...');
+  container.innerHTML = '';
+
+  var w = container.getBoundingClientRect().width || 800;
+  klineChart = LightweightCharts.createChart(container, {
+    width: w,
+    height: 500,
+    layout: { background: { color: '#111827' }, textColor: '#94a3b8' },
+    grid: { vertLines: { color: 'rgba(30,45,61,0.3)' }, horzLines: { color: 'rgba(30,45,61,0.3)' } },
+    crosshair: { mode: 0 },
+    rightPriceScale: { borderColor: 'rgba(30,45,61,0.5)' },
+    timeScale: {
+      borderColor: 'rgba(30,45,61,0.5)',
+      timeVisible: false,
+      rightOffset: 0,
+      minBarSpacing: 1,
+    },
+  });
+
+  klineSeries = klineChart.addCandlestickSeries({
+    upColor: '#26a69a', downColor: '#ef5350',
+    borderUpColor: '#26a69a', borderDownColor: '#ef5350',
+    wickUpColor: '#26a69a', wickDownColor: '#ef5350',
+    lastValueVisible: false,
+    priceLineVisible: false,
+  });
+
+  // 回购柱状图（独立Y轴，左侧）
+  buybackMarkerSeries = klineChart.addHistogramSeries({
+    color: 'rgba(245, 158, 11, 0.25)',
+    priceFormat: { type: 'price', precision: 0, minMove: 1 },
+    priceScaleId: 'buyback',
+    lastValueVisible: false,
+    priceLineVisible: false,
+  });
+  klineChart.priceScale('buyback').applyOptions({
+    scaleMargins: { top: 0.90, bottom: 0 },
+    drawTicks: false,
+  });
+
+  // K线用右侧Y轴
+  klineChart.priceScale('right').applyOptions({
+    scaleMargins: { top: 0.1, bottom: 0.1 },
+  });
+
+  new ResizeObserver(function(entries) {
+    if (!entries[0] || !klineChart) return;
+    klineChart.applyOptions({ width: entries[0].contentRect.width });
+  }).observe(container);
+
+  klineChart.subscribeCrosshairMove(function(param) {
+    var infoEl = document.getElementById('klineInfo');
+    if (!infoEl) return;
+    if (!param.time || !param.seriesData) { infoEl.classList.remove('visible'); return; }
+    var cd = param.seriesData.get(klineSeries);
+    if (!cd) { infoEl.classList.remove('visible'); return; }
+    var chg = cd.close - cd.open, pct = ((chg / cd.open) * 100).toFixed(2), up = chg >= 0;
+    var bb = currentBuybackMap[param.time];
+    var bbInfo = '';
+    if (bb) {
+      bbInfo = '<div class="kline-info-item" style="color:#f59e0b;"><span class="kline-info-label">回购</span><span class="kline-info-value">' + bb.sharesWan.toFixed(0) + '万股 @ HK$' + bb.avgPrice.toFixed(2) + ' = HK$' + formatCompactAmount(bb.amount) + '</span></div>';
+    }
+    infoEl.innerHTML =
+      '<div class="kline-info-item"><span class="kline-info-label">日期</span><span class="kline-info-value">' + param.time + '</span></div>' +
+      '<div class="kline-info-item"><span class="kline-info-label">开</span><span class="kline-info-value">HK$ ' + cd.open.toFixed(2) + '</span></div>' +
+      '<div class="kline-info-item"><span class="kline-info-label">高</span><span class="kline-info-value">HK$ ' + cd.high.toFixed(2) + '</span></div>' +
+      '<div class="kline-info-item"><span class="kline-info-label">低</span><span class="kline-info-value">HK$ ' + cd.low.toFixed(2) + '</span></div>' +
+      '<div class="kline-info-item"><span class="kline-info-label">收</span><span class="kline-info-value">HK$ ' + cd.close.toFixed(2) + '</span></div>' +
+      '<div class="kline-info-item"><span class="kline-info-label">涨跌</span><span class="kline-info-value ' + (up ? 'up' : 'down') + '">' + (up ? '+' : '') + chg.toFixed(2) + ' (' + (up ? '+' : '') + pct + '%)</span></div>' +
+      bbInfo;
+    infoEl.classList.add('visible');
+  });
+
+  console.log('[kline] chart created, fetching data...');
+  fetchKlineData(currentKlineCode, currentKlinePeriod);
+}
+
+async function fetchKlineData(code, period) {
+  var cacheKey = code + '_' + period;
+  if (klineDataCache[cacheKey]) { renderKlineData(klineDataCache[cacheKey]); return; }
+
+  try {
+    console.log('[kline] fetching ' + code + ' ' + period);
+    var resp = await fetch('/finance-tracker/api/kline?code=' + code + '&period=' + period);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    var data = await resp.json();
+    console.log('[kline] got ' + data.kline.length + ' candles');
+    klineDataCache[cacheKey] = data;
+    renderKlineData(data);
+  } catch (err) {
+    console.error('[kline] fetch failed:', err);
+    var container = document.getElementById('klineContainer');
+    if (container && !klineChart) {
+      container.innerHTML = '<div class="empty" style="padding:60px;"><p>⚠️ K线数据加载失败: ' + err.message + '</p></div>';
+    }
+  }
+}
+
+function renderKlineData(data) {
+  if (!klineChart || !klineSeries) { console.error('[kline] chart not ready'); return; }
+  var kline = data.kline, markers = data.markers, code = data.code, name = data.name;
+  var subtitleEl = document.getElementById('klineSubtitle');
+  if (subtitleEl) subtitleEl.textContent = name + ' (' + COMPANIES[code].code + '.HK)';
+
+  // 构建回购日映射
+  var buybackMap = {};
+  (markers.buyback || []).forEach(function(m) {
+    if (m.buyback) buybackMap[m.time] = m.buyback;
+  });
+  currentBuybackMap = buybackMap;
+
+  // K线数据（正常价格范围）
+  klineSeries.setData(kline.map(function(i) {
+    return { time: i.time, open: i.open, high: i.high, low: i.low, close: i.close };
+  }));
+
+  // 回购柱状图（独立Y轴，按每家公司自身最大值归一化）
+  var maxAmount = 0;
+  kline.forEach(function(i) {
+    var bb = buybackMap[i.time];
+    if (bb && bb.amount > maxAmount) maxAmount = bb.amount;
+  });
+
+  buybackMarkerSeries.setData(kline.map(function(i) {
+    var bb = buybackMap[i.time];
+    var val = bb ? (maxAmount > 0 ? bb.amount / maxAmount * 100 : 0) : 0;
+    return {
+      time: i.time,
+      value: val,
+      color: bb ? 'rgba(245, 158, 11, 0.25)' : 'transparent',
+    };
+  }));
+
+  // 分红标记（红色，在K线上方）
+  var divMarkers = (markers.dividend || []).map(function(m) {
+    return { time: m.time, position: 'aboveBar', color: '#ef4444', shape: 'circle', text: '💰 分红' };
+  });
+  klineSeries.setMarkers(divMarkers);
+
+  klineChart.timeScale().fitContent();
+
+  // 限制滚动范围，不允许出现空白
+  klineChart.timeScale().subscribeVisibleLogicalRangeChange(function(range) {
+    if (!range) return;
+    var barsCount = klineChart.timeScale().getVisibleRange ? 0 : 0;
+    var dataLen = klineSeries.data ? klineSeries.data().length : 0;
+    if (range.from < -0.5) {
+      klineChart.timeScale().setVisibleLogicalRange({ from: -0.5, to: range.to - range.from - 0.5 });
+    }
+    var maxTo = dataLen - 0.5;
+    if (range.to > maxTo + 0.5) {
+      klineChart.timeScale().setVisibleLogicalRange({ from: range.from - (range.to - maxTo), to: maxTo });
+    }
+  });
+}
+
+function switchKlineCompany(code) {
+  currentKlineCode = code;
+  document.querySelectorAll('.kline-tab').forEach(function(t) { t.classList.toggle('active', t.dataset.code === code); });
+  fetchKlineData(code, currentKlinePeriod);
+}
+
+function bindKlineEvents() {
+  document.querySelectorAll('.kline-tab').forEach(function(t) { t.addEventListener('click', function() { switchKlineCompany(t.dataset.code); }); });
 }
 
 // Format large number
@@ -1579,6 +1962,10 @@ function renderAll() {
 }
 
 // Init
+// 初始化K线图
+initKlineChart();
+bindKlineEvents();
+
 fetchData();
 
 // Auto refresh every 30 minutes

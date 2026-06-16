@@ -4,7 +4,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const app = express();
-const PORT = process.env.PORT || 3008;
+const PORT = process.env.PORT || 3009;
 
 // Path prefix middleware: strip /finance-tracker prefix for direct access (port 3008)
 // This allows the page to work both via nginx proxy (https://christmasldw.com/finance-tracker/)
@@ -16,9 +16,9 @@ app.use((req, res, next) => {
   next();
 });
 
-const WESTOK_SCRIPT = '/var/www/finance-tracker/scripts/westock-data.js';
-const CACHE_DIR = '/var/www/finance-tracker/cache';
-const NEODATA_TOKEN_FILE = '/var/www/finance-tracker/.neodata_token';
+const WESTOK_SCRIPT = path.join(__dirname, 'scripts/westock-data.js');
+const CACHE_DIR = path.join(__dirname, 'cache');
+const NEODATA_TOKEN_FILE = path.join(__dirname, '.neodata_token');
 const NEODATA_ENDPOINT = 'https://copilot.tencent.com/agenttool/v1/neodata';
 
 // Companies config
@@ -735,6 +735,237 @@ app.post('/api/warm', async (req, res) => {
     log.push(`[${ts()}] buyback_daily_Nd caches pre-built (3d/5d/10d/20d)`);
     log.push(`[${ts()}] Warm update complete.`);
 
+    res.json({ success: true, log });
+  } catch (e) {
+    log.push(`[${ts()}] FATAL ERROR: ${e.message}`);
+    res.status(500).json({ success: false, error: e.message, log });
+  }
+});
+
+// ==================== K线数据 API ====================
+// 腾讯财经API港股代码映射
+const TENCENT_SYMBOLS = {
+  'hk00700': 'hk00700',
+  'hk01810': 'hk01810',
+  'hk09992': 'hk09992',
+};
+
+// 获取K线数据（使用腾讯财经API）
+function fetchKlineData(symbol, period = '1y') {
+  return new Promise((resolve, reject) => {
+    const periodDays = {
+      '1m': 30, '3m': 90, '6m': 180,
+      '1y': 365, '2y': 730, '5y': 1825
+    };
+    const days = periodDays[period] || 365;
+    const url = `https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=${symbol},day,,,${days},qfq`;
+
+    https.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+      }
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json.code === 0 && json.data && json.data[symbol]) {
+            const dayData = json.data[symbol].day || json.data[symbol].qfqday || [];
+            const klineData = [];
+            const buybackData = [];
+
+            for (const item of dayData) {
+              const kline = {
+                time: item[0],
+                open: parseFloat(item[1]),
+                close: parseFloat(item[2]),
+                high: parseFloat(item[3]),
+                low: parseFloat(item[4]),
+                volume: parseFloat(item[5]),
+              };
+              if (!isNaN(kline.open) && !isNaN(kline.close)) {
+                klineData.push(kline);
+              }
+
+              // 从HGcontent提取回购信息
+              const extra = item[6];
+              if (extra && extra.HGcontent) {
+                const hg = extra.HGcontent;
+                // 格式: "回购172.00万股，均价407.133港元"
+                const match = hg.match(/回购([\d.]+)万股.*?均价([\d.]+)港元/);
+                if (match) {
+                  const sharesWan = parseFloat(match[1]);
+                  const avgPrice = parseFloat(match[2]);
+                  buybackData.push({
+                    time: item[0],
+                    sharesWan: sharesWan,
+                    shares: Math.round(sharesWan * 10000),
+                    avgPrice: avgPrice,
+                    amount: Math.round(sharesWan * 10000 * avgPrice),
+                  });
+                }
+              }
+
+              // 从FHcontent提取分红信息
+              if (extra && extra.FHcontent) {
+                // 暂存，后面解析
+              }
+            }
+
+            resolve({ kline: klineData, buyback: buybackData });
+          } else {
+            reject(new Error('Invalid Tencent Finance response'));
+          }
+        } catch (e) {
+          reject(new Error('Failed to parse K-line data: ' + e.message));
+        }
+      });
+    }).on('error', reject);
+  });
+}
+
+// API: 获取K线数据 + 回购/分红事件标记（优先使用本地缓存）
+app.get('/api/kline', async (req, res) => {
+  try {
+    const code = req.query.code || 'hk00700';
+    const period = req.query.period || '1y';
+
+    if (!TENCENT_SYMBOLS[code]) {
+      return res.status(400).json({ error: 'Unsupported stock code' });
+    }
+
+    // 优先读取预缓存的K线数据（由warm-cache.sh每天更新）
+    const cacheKey = `kline_${code}_${period}`;
+    const cached = getCache(cacheKey, Infinity); // 无限有效期，由cron更新
+    if (cached) return res.json(cached);
+
+    // 如果没有预缓存，实时获取（首次访问或缓存被清除）
+    const [klineResult, dividendAll] = await Promise.all([
+      fetchKlineData(TENCENT_SYMBOLS[code], period),
+      getCache('dividend_all', Infinity),
+    ]);
+
+    // 构建回购事件标记（从K线数据中提取）
+    const buybackMarkers = klineResult.buyback.map(item => ({
+      time: item.time,
+      position: 'aboveBar',
+      color: '#f59e0b',
+      shape: 'arrowUp',
+      text: `回购 ${item.sharesWan.toFixed(0)}万股`,
+      buyback: item,
+    }));
+
+    // 构建分红事件标记
+    const dividendMarkers = [];
+    if (dividendAll && dividendAll[code] && dividendAll[code].dividends) {
+      for (const item of dividendAll[code].dividends) {
+        if (item.exDiviDate && item.exDiviDate !== '0') {
+          const dateStr = item.exDiviDate;
+          const formattedDate = `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
+          dividendMarkers.push({
+            time: formattedDate,
+            position: 'belowBar',
+            color: '#10b981',
+            shape: 'arrowDown',
+            text: `分红 HK$${item.cashDivPerShare}`,
+            dividend: { cashDivPerShare: item.cashDivPerShare, reportEndDate: item.reportEndDate }
+          });
+        }
+      }
+    }
+
+    const result = {
+      code,
+      name: COMPANIES[code].name,
+      kline: klineResult.kline,
+      markers: { buyback: buybackMarkers, dividend: dividendMarkers },
+      lastUpdate: new Date().toISOString(),
+    };
+
+    setCache(cacheKey, result);
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// API: 预热K线缓存（由warm-cache.sh调用）
+app.post('/api/warm-kline', async (req, res) => {
+  const log = [];
+  const ts = () => new Date().toISOString();
+  const periods = ['1m', '3m', '6m', '1y', '2y', '5y'];
+
+  try {
+    log.push(`[${ts()}] Starting K-line cache warm...`);
+
+    for (const [code, symbol] of Object.entries(TENCENT_SYMBOLS)) {
+      try {
+        // 获取最长周期数据（5年）
+        const klineResult = await fetchKlineData(symbol, '5y');
+
+        // 获取分红事件
+        const dividendAll = getCache('dividend_all', Infinity);
+
+        // 构建回购事件标记（从K线数据中提取）
+        const buybackMarkers = klineResult.buyback.map(item => ({
+          time: item.time,
+          position: 'aboveBar',
+          color: '#f59e0b',
+          shape: 'arrowUp',
+          text: `回购 ${item.sharesWan.toFixed(0)}万股`,
+          buyback: item,
+        }));
+
+        // 构建分红事件标记
+        const dividendMarkers = [];
+        if (dividendAll && dividendAll[code] && dividendAll[code].dividends) {
+          for (const item of dividendAll[code].dividends) {
+            if (item.exDiviDate && item.exDiviDate !== '0') {
+              const dateStr = item.exDiviDate;
+              const formattedDate = `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
+              dividendMarkers.push({
+                time: formattedDate,
+                position: 'belowBar',
+                color: '#10b981',
+                shape: 'arrowDown',
+                text: `分红 HK$${item.cashDivPerShare}`,
+                dividend: { cashDivPerShare: item.cashDivPerShare, reportEndDate: item.reportEndDate }
+              });
+            }
+          }
+        }
+
+        // 按周期缓存
+        const now = new Date();
+        for (const period of periods) {
+          const periodDays = { '1m': 30, '3m': 90, '6m': 180, '1y': 365, '2y': 730, '5y': 1825 };
+          const days = periodDays[period];
+          const cutoffDate = new Date(now - days * 24 * 60 * 60 * 1000);
+          const cutoffStr = cutoffDate.toISOString().split('T')[0];
+
+          const filteredKline = klineResult.kline.filter(k => k.time >= cutoffStr);
+          const filteredBuyback = buybackMarkers.filter(m => m.time >= cutoffStr);
+          const filteredDividend = dividendMarkers.filter(m => m.time >= cutoffStr);
+
+          const result = {
+            code,
+            name: COMPANIES[code].name,
+            kline: filteredKline,
+            markers: { buyback: filteredBuyback, dividend: filteredDividend },
+            lastUpdate: new Date().toISOString(),
+          };
+
+          setCache(`kline_${code}_${period}`, result);
+        }
+
+        log.push(`[${ts()}] ${COMPANIES[code].name}: ${klineResult.kline.length} days, ${klineResult.buyback.length} buybacks cached`);
+      } catch (e) {
+        log.push(`[${ts()}] ${COMPANIES[code].name}: ERROR - ${e.message}`);
+      }
+    }
+
+    log.push(`[${ts()}] K-line cache warm complete.`);
     res.json({ success: true, log });
   } catch (e) {
     log.push(`[${ts()}] FATAL ERROR: ${e.message}`);

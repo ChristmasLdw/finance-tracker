@@ -35,4 +35,15 @@ else
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] FAILED: $RESPONSE" >> "$LOG"
 fi
 
+# Pre-warm K-line cache (runs after main warm)
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Warming K-line cache..." >> "$LOG"
+KLINE_RESPONSE=$(curl -s -m 60 -X POST "$BASE/api/warm-kline" -H "Content-Type: application/json" 2>&1)
+KLINE_SUCCESS=$(echo "$KLINE_RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('success', False))" 2>/dev/null)
+
+if [ "$KLINE_SUCCESS" = "True" ]; then
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] K-line cache warmed successfully" >> "$LOG"
+else
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] K-line warm failed: $KLINE_RESPONSE" >> "$LOG"
+fi
+
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] === Warm cache done ===" >> "$LOG"
