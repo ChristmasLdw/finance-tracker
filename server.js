@@ -4,7 +4,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const app = express();
-const PORT = process.env.PORT || 3009;
+const PORT = process.env.PORT || 3008;
 
 // Path prefix middleware: strip /finance-tracker prefix for direct access (port 3008)
 // This allows the page to work both via nginx proxy (https://christmasldw.com/finance-tracker/)
