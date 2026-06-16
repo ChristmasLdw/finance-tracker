@@ -1610,39 +1610,43 @@ const COMPANY_COLORS_LIGHT = { hk00700: 'rgba(30,111,255,0.12)', hk01810: 'rgba(
     const frontDays = tradingDays.slice(0, frontLen);
     const tailDays  = tradingDays.slice(frontLen);
 
-    // Track dates already shown (for dedup)
+    // Track dates already shown in front section
     const shownDates = new Set();
     for (const td of frontDays) {
-      if (td.buyback) shownDates.add(td.date);
-    }
-    // 也排除tailDays中已有回购的日期
-    for (const td of tailDays) {
       if (td.buyback) shownDates.add(td.date);
     }
 
     // ── 1) Front section: collapse consecutive no-buyback ──
     const frontRows = collapseConsecutive(frontDays, color, colorLight, companyMax);
 
-    // ── 2) Tail section: replace no-buyback days with recent buybacks ──
-    // Collect recent buyback candidates not yet shown
-    const recentCandidates = [];
-    for (const bb of allBuybacks) {
-      if (!shownDates.has(bb.date)) {
-        recentCandidates.push(bb);
-        if (recentCandidates.length >= lastThird) break;
-      }
-    }
-
+    // ── 2) Tail section: each slot finds nearest buyback after it ──
+    // 构建所有回购日期的有序列表
+    const allBuybackDates = allBuybacks.map(bb => bb.date).sort().reverse();
+    
     const tailRows = [];
     for (let i = 0; i < tailDays.length; i++) {
       const td = tailDays[i];
       if (td.buyback) {
+        // 当天有回购，直接显示
         tailRows.push(renderBuybackRow(td.date, td.buyback, color, colorLight, companyMax));
-      } else if (recentCandidates.length > 0) {
-        const bb = recentCandidates.shift();
-        tailRows.push(renderBuybackRow(bb.date, bb, color, colorLight, companyMax));
+        shownDates.add(td.date);
       } else {
-        tailRows.push(renderNoBuybackRow(td.date));
+        // 当天没有回购，往后找最近的未使用回购日
+        let found = false;
+        for (const bbDate of allBuybackDates) {
+          if (bbDate >= td.date && !shownDates.has(bbDate)) {
+            const bb = allBuybacks.find(b => b.date === bbDate);
+            if (bb) {
+              tailRows.push(renderBuybackRow(bbDate, bb, color, colorLight, companyMax));
+              shownDates.add(bbDate);
+              found = true;
+              break;
+            }
+          }
+        }
+        if (!found) {
+          tailRows.push(renderNoBuybackRow(td.date));
+        }
       }
     }
 
