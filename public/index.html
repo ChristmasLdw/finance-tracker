@@ -1265,9 +1265,9 @@ function initKlineChart() {
   });
 
   klineSeries = klineChart.addCandlestickSeries({
-    upColor: '#26a69a', downColor: '#ef5350',
-    borderUpColor: '#26a69a', borderDownColor: '#ef5350',
-    wickUpColor: '#26a69a', wickDownColor: '#ef5350',
+    upColor: '#ef5350', downColor: '#26a69a',
+    borderUpColor: '#ef5350', borderDownColor: '#26a69a',
+    wickUpColor: '#ef5350', wickDownColor: '#26a69a',
     lastValueVisible: false,
     priceLineVisible: false,
   });
@@ -1313,7 +1313,7 @@ function initKlineChart() {
       '<div class="kline-info-item"><span class="kline-info-label">高</span><span class="kline-info-value">HK$ ' + cd.high.toFixed(2) + '</span></div>' +
       '<div class="kline-info-item"><span class="kline-info-label">低</span><span class="kline-info-value">HK$ ' + cd.low.toFixed(2) + '</span></div>' +
       '<div class="kline-info-item"><span class="kline-info-label">收</span><span class="kline-info-value">HK$ ' + cd.close.toFixed(2) + '</span></div>' +
-      '<div class="kline-info-item"><span class="kline-info-label">涨跌</span><span class="kline-info-value ' + (up ? 'up' : 'down') + '">' + (up ? '+' : '') + chg.toFixed(2) + ' (' + (up ? '+' : '') + pct + '%)</span></div>' +
+      '<div class="kline-info-item"><span class="kline-info-label">涨跌</span><span class="kline-info-value ' + (up ? 'down' : 'up') + '">' + (up ? '+' : '') + chg.toFixed(2) + ' (' + (up ? '+' : '') + pct + '%)</span></div>' +
       bbInfo;
     infoEl.classList.add('visible');
   });
