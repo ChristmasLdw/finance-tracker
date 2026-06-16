@@ -1615,6 +1615,10 @@ const COMPANY_COLORS_LIGHT = { hk00700: 'rgba(30,111,255,0.12)', hk01810: 'rgba(
     for (const td of frontDays) {
       if (td.buyback) shownDates.add(td.date);
     }
+    // 也排除tailDays中已有回购的日期
+    for (const td of tailDays) {
+      if (td.buyback) shownDates.add(td.date);
+    }
 
     // ── 1) Front section: collapse consecutive no-buyback ──
     const frontRows = collapseConsecutive(frontDays, color, colorLight, companyMax);
