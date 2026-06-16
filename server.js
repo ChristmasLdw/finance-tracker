@@ -391,13 +391,41 @@ app.get('/api/buyback-daily', async (req, res) => {
     const cached = getCache(cacheKey, Infinity);
     if (cached) return res.json(cached);
 
-    // Derive from buyback_daily_all cache (always available, maintained by warm job)
+    // 优先从K线缓存获取回购数据（更及时）
+    const klineCache = getCache('kline_hk00700_5y', Infinity);
+    
+    // 同时获取neodata数据作为补充
     const buybackAll = getCache('buyback_daily_all', Infinity);
     const tradingDays = getLastNTradingDays(validDays);
 
     const results = {};
     for (const [code, info] of Object.entries(COMPANIES)) {
-      const allDailyBuybacks = (buybackAll && buybackAll[code] && buybackAll[code].dailyBuybacks) || [];
+      // 从K线缓存获取回购数据
+      const klineData = getCache(`kline_${code}_5y`, Infinity);
+      const klineBuybacks = [];
+      if (klineData && klineData.markers && klineData.markers.buyback) {
+        for (const m of klineData.markers.buyback) {
+          if (m.buyback) {
+            klineBuybacks.push({
+              date: m.time,
+              shares: m.buyback.shares,
+              sharesWan: m.buyback.sharesWan,
+              avgPrice: m.buyback.avgPrice,
+              amount: m.buyback.amount,
+              source: 'tencent_kline',
+            });
+          }
+        }
+      }
+
+      // 从neodata获取回购数据
+      const neodataBuybacks = (buybackAll && buybackAll[code] && buybackAll[code].dailyBuybacks) || [];
+
+      // 合并数据，K线数据优先（更及时）
+      const mergedMap = {};
+      for (const item of neodataBuybacks) mergedMap[item.date] = item;
+      for (const item of klineBuybacks) mergedMap[item.date] = item;
+      const allDailyBuybacks = Object.values(mergedMap).sort((a, b) => b.date.localeCompare(a.date));
 
       // Build lookup map: date -> buyback item
       const buybackMap = {};
