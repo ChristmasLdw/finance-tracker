@@ -1620,10 +1620,12 @@ const COMPANY_COLORS_LIGHT = { hk00700: 'rgba(30,111,255,0.12)', hk01810: 'rgba(
     const frontRows = collapseConsecutive(frontDays, color, colorLight, companyMax);
 
     // ── 2) Tail section: each slot finds nearest buyback after it ──
-    // 构建所有回购日期的有序列表
+    // 构建所有回购日期的有序列表（从新到旧）
     const allBuybackDates = allBuybacks.map(bb => bb.date).sort().reverse();
     
     const tailRows = [];
+    let fallbackIndex = 0; // 用于没有回购时从最近回购开始填充
+    
     for (let i = 0; i < tailDays.length; i++) {
       const td = tailDays[i];
       if (td.buyback) {
@@ -1645,7 +1647,22 @@ const COMPANY_COLORS_LIGHT = { hk00700: 'rgba(30,111,255,0.12)', hk01810: 'rgba(
           }
         }
         if (!found) {
-          tailRows.push(renderNoBuybackRow(td.date));
+          // 如果没有找到，从最近的回购数据中取（处理泡泡玛特等无回购情况）
+          while (fallbackIndex < allBuybackDates.length && shownDates.has(allBuybackDates[fallbackIndex])) {
+            fallbackIndex++;
+          }
+          if (fallbackIndex < allBuybackDates.length) {
+            const bb = allBuybacks.find(b => b.date === allBuybackDates[fallbackIndex]);
+            if (bb) {
+              tailRows.push(renderBuybackRow(bb.date, bb, color, colorLight, companyMax));
+              shownDates.add(bb.date);
+              fallbackIndex++;
+            } else {
+              tailRows.push(renderNoBuybackRow(td.date));
+            }
+          } else {
+            tailRows.push(renderNoBuybackRow(td.date));
+          }
         }
       }
     }
