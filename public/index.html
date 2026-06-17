@@ -1629,6 +1629,23 @@ const COMPANY_COLORS_LIGHT = { hk00700: 'rgba(30,111,255,0.12)', hk01810: 'rgba(
     }
 
     const tailRows = [];
+    
+    // 如果前面有压缩的"无回购"，且第一个回购日距离较远，显示间隔提示
+    if (recentBuybacks.length > 0 && frontDays.length > 0) {
+      const lastFrontDate = frontDays[0].date; // 前面部分最近的日期
+      const firstTailBuyback = recentBuybacks[0];
+      
+      // 计算间隔天数
+      const lastFront = new Date(lastFrontDate + 'T00:00:00+08:00');
+      const firstTail = new Date(firstTailBuyback.date + 'T00:00:00+08:00');
+      const diffDays = Math.round((lastFront - firstTail) / (1000 * 60 * 60 * 24));
+      
+      // 如果间隔超过3天，显示间隔提示
+      if (diffDays > 3) {
+        tailRows.push(renderEllipsisRow(diffDays));
+      }
+    }
+    
     for (const bb of recentBuybacks) {
       tailRows.push(renderBuybackRow(bb.date, bb, color, colorLight, companyMax));
     }
