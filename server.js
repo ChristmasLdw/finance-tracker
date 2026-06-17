@@ -325,6 +325,43 @@ function filterBuybackNotices(notices) {
 }
 
 // 生成最近N个交易日（排除周六周日）
+// 从腾讯财经API获取真实交易日列表
+async function fetchTradingDays(symbol, days) {
+  return new Promise((resolve, reject) => {
+    const url = `https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=${symbol},day,,,${days},qfq`;
+    https.get(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json.code === 0 && json.data && json.data[symbol]) {
+            const dayData = json.data[symbol].day || json.data[symbol].qfqday || [];
+            resolve(dayData.map(item => item[0]).reverse()); // 从新到旧
+          } else {
+            resolve([]);
+          }
+        } catch (e) {
+          resolve([]);
+        }
+      });
+    }).on('error', () => resolve([]));
+  });
+}
+
+// 生成交易日列表（优先使用API数据，fallback用周末排除法）
+async function getLastNTradingDaysAsync(n) {
+  // 先尝试从API获取真实交易日
+  const apiDays = await fetchTradingDays('hk00700', n * 2);
+  if (apiDays.length >= n) {
+    return apiDays.slice(0, n);
+  }
+  // fallback: 排除周末
+  return getLastNTradingDays(n);
+}
+
 function getLastNTradingDays(n) {
   const days = [];
   const d = new Date();
@@ -396,7 +433,25 @@ app.get('/api/buyback-daily', async (req, res) => {
     
     // 同时获取neodata数据作为补充
     const buybackAll = getCache('buyback_daily_all', Infinity);
-    const tradingDays = getLastNTradingDays(validDays);
+    
+    // 获取真实交易日（从腾讯API）
+    const realTradingDays = new Set(await fetchTradingDays('hk00700', validDays * 2));
+    
+    // 生成所有工作日（周一到周五）
+    const tradingDays = [];
+    const d = new Date();
+    d.setHours(d.getHours() + 8);
+    d.setDate(d.getDate() - 1);
+    while (tradingDays.length < validDays) {
+      const dayOfWeek = d.getDay();
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        tradingDays.push(y + "-" + m + "-" + dd);
+      }
+      d.setDate(d.getDate() - 1);
+    }
 
     const results = {};
     for (const [code, info] of Object.entries(COMPANIES)) {
@@ -437,6 +492,7 @@ app.get('/api/buyback-daily', async (req, res) => {
       const tradingDayEntries = tradingDays.map(date => ({
         date,
         buyback: buybackMap[date] || null,
+        isTradingDay: realTradingDays.has(date),
       }));
 
       const daysWithBuyback = tradingDayEntries.filter(e => e.buyback !== null);

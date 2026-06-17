@@ -1522,7 +1522,8 @@ const COMPANY_COLORS_LIGHT = { hk00700: 'rgba(30,111,255,0.12)', hk01810: 'rgba(
           </div>`;
   }
 
-  function renderNoBuybackRow(dateStr) {
+  function renderNoBuybackRow(dateStr, isTradingDay) {
+    const label = isTradingDay === false ? '非交易日' : '无回购';
     return `
           <div class="dash-day-row">
             <div class="dash-day-date">
@@ -1530,7 +1531,7 @@ const COMPANY_COLORS_LIGHT = { hk00700: 'rgba(30,111,255,0.12)', hk01810: 'rgba(
               <span class="weekday">${getWeekday(dateStr)}</span>
             </div>
             <div class="dash-day-zero-bar">
-              <span class="dash-day-zero-label">无回购</span>
+              <span class="dash-day-zero-label">${label}</span>
             </div>
             <div class="dash-day-zero-spacer"></div>
           </div>`;
@@ -1550,7 +1551,7 @@ const COMPANY_COLORS_LIGHT = { hk00700: 'rgba(30,111,255,0.12)', hk01810: 'rgba(
   }
 
   function collapseConsecutive(list, color, colorLight, companyMax) {
-    // list is an array of {date, buyback} objects
+    // list is an array of {date, buyback, isTradingDay} objects
     // Returns array of HTML strings, collapsing consecutive no-buyback runs
     const result = [];
     let i = 0;
@@ -1568,13 +1569,13 @@ const COMPANY_COLORS_LIGHT = { hk00700: 'rgba(30,111,255,0.12)', hk01810: 'rgba(
       if (count <= 2) {
         // Show each individually
         for (let k = i; k < j; k++) {
-          result.push(renderNoBuybackRow(list[k].date));
+          result.push(renderNoBuybackRow(list[k].date, list[k].isTradingDay));
         }
       } else {
         // 3+ consecutive → show first, ellipsis, last
-        result.push(renderNoBuybackRow(list[i].date));
+        result.push(renderNoBuybackRow(list[i].date, list[i].isTradingDay));
         result.push(renderEllipsisRow(count - 2));
-        result.push(renderNoBuybackRow(list[j - 1].date));
+        result.push(renderNoBuybackRow(list[j - 1].date, list[j - 1].isTradingDay));
       }
       i = j;
     }
