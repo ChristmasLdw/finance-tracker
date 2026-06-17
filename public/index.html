@@ -1719,6 +1719,11 @@ function switchTab(code) {
   renderCompany(code);
 }
 
+function switchPage(page) {
+  dailyPage = page;
+  renderCompany(currentTab);
+}
+
 // Render daily buyback table
 function renderDailyBuybackTable(code) {
   const dailyInfo = buybackDailyData && buybackDailyData[code];
@@ -1803,11 +1808,11 @@ function renderDailyBuybackTable(code) {
     </div>
     ${totalPages > 1 ? `
     <div class="table-footer">
-      <button onclick="dailyPage=1;switchTab('${code}')" ${dailyPage === 1 ? 'disabled' : ''}>首页</button>
-      <button onclick="dailyPage=${Math.max(1, dailyPage - 1)};switchTab('${code}')" ${dailyPage === 1 ? 'disabled' : ''}>上一页</button>
+      <button onclick="switchPage(1)" ${dailyPage === 1 ? 'disabled' : ''}>首页</button>
+      <button onclick="switchPage(${Math.max(1, dailyPage - 1)})" ${dailyPage === 1 ? 'disabled' : ''}>上一页</button>
       <span class="page-info">第 ${dailyPage} / ${totalPages} 页</span>
-      <button onclick="dailyPage=${Math.min(totalPages, dailyPage + 1)};switchTab('${code}')" ${dailyPage === totalPages ? 'disabled' : ''}>下一页</button>
-      <button onclick="dailyPage=${totalPages};switchTab('${code}')" ${dailyPage === totalPages ? 'disabled' : ''}>末页</button>
+      <button onclick="switchPage(${Math.min(totalPages, dailyPage + 1)})" ${dailyPage === totalPages ? 'disabled' : ''}>下一页</button>
+      <button onclick="switchPage(${totalPages})" ${dailyPage === totalPages ? 'disabled' : ''}>末页</button>
     </div>` : ''}
   `;
 }
