@@ -13,6 +13,10 @@ app.use((req, res, next) => {
   if (req.url.startsWith('/finance-tracker')) {
     req.url = req.url.slice('/finance-tracker'.length) || '/';
   }
+  // API responses: cache for 1 hour in browser
+  if (req.url.startsWith('/api/')) {
+    res.set('Cache-Control', 'public, max-age=3600');
+  }
   next();
 });
 
