@@ -1604,51 +1604,17 @@ const COMPANY_COLORS_LIGHT = { hk00700: 'rgba(30,111,255,0.12)', hk01810: 'rgba(
     }
     const companyMax = Math.max(...companyAmounts, 1);
 
-    // ── Split: front 2/3 normal, last 1/3 fallback to recent buybacks ──
+    // ── Split: front 2/3 normal, last 1/3 normal ──
     const lastThird = Math.max(1, Math.floor(totalDays / 3));
     const frontLen = totalDays - lastThird;
     const frontDays = tradingDays.slice(0, frontLen);
-
-    // Track dates already shown in front section
-    const shownDates = new Set();
-    for (const td of frontDays) {
-      if (td.buyback) shownDates.add(td.date);
-    }
+    const tailDays = tradingDays.slice(frontLen);
 
     // ── 1) Front section: collapse consecutive no-buyback ──
     const frontRows = collapseConsecutive(frontDays, color, colorLight, companyMax);
 
-    // ── 2) Tail section: show recent N buybacks not in front section ──
-    // 从所有回购数据中，排除前面已显示的，取最近的lastThird笔回购
-    const recentBuybacks = [];
-    for (const bb of allBuybacks) {
-      if (!shownDates.has(bb.date)) {
-        recentBuybacks.push(bb);
-        if (recentBuybacks.length >= lastThird) break;
-      }
-    }
-
-    const tailRows = [];
-    
-    // 如果前面有压缩的"无回购"，且第一个回购日距离较远，显示间隔提示
-    if (recentBuybacks.length > 0 && frontLen > 0) {
-      const lastFrontDate = tradingDays[frontLen - 1].date; // 前面部分最后一天
-      const firstTailBuyback = recentBuybacks[0];
-      
-      // 计算间隔天数
-      const lastFront = new Date(lastFrontDate + 'T00:00:00+08:00');
-      const firstTail = new Date(firstTailBuyback.date + 'T00:00:00+08:00');
-      const diffDays = Math.round((lastFront - firstTail) / (1000 * 60 * 60 * 24));
-      
-      // 如果间隔超过3天，显示间隔提示
-      if (diffDays > 3) {
-        tailRows.push(renderEllipsisRow(diffDays));
-      }
-    }
-    
-    for (const bb of recentBuybacks) {
-      tailRows.push(renderBuybackRow(bb.date, bb, color, colorLight, companyMax));
-    }
+    // ── 2) Tail section: normal display like front section ──
+    const tailRows = collapseConsecutive(tailDays, color, colorLight, companyMax);
 
     // N-day buyback funds total
     const nDayAmount = tradingDays.reduce((s, td) => s + (td.buyback ? (td.buyback.amount || 0) : 0), 0);
