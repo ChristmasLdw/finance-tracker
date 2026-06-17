@@ -1198,7 +1198,23 @@ const DAILY_PAGE_SIZE = 15;
 // Fetch all data — pre-fetch all 4 day-count variants for instant switching
 async function fetchData() {
   try {
-    // Fetch all data and buyback-daily (default 3 days, others lazy load)
+    // 检查本地缓存（1小时有效）
+    const cached = localStorage.getItem('finance_data');
+    const cacheTime = localStorage.getItem('finance_data_time');
+    const now = Date.now();
+    const ONE_HOUR = 60 * 60 * 1000;
+    
+    if (cached && cacheTime && (now - parseInt(cacheTime)) < ONE_HOUR) {
+      // 使用本地缓存
+      const data = JSON.parse(cached);
+      allData = data.allData;
+      buybackDailyCache = data.buybackDailyCache || {};
+      buybackDailyData = buybackDailyCache[dashboardDays] || buybackDailyCache[3];
+      renderAll();
+      return;
+    }
+    
+    // Fetch all data and buyback-daily (default 3 days)
     const [allResp, d3Resp] = await Promise.all([
       fetch('/finance-tracker/api/all'),
       fetch('/finance-tracker/api/buyback-daily?days=3'),
@@ -1209,13 +1225,30 @@ async function fetchData() {
 
     if (d3Resp.ok) buybackDailyCache[3] = await d3Resp.json();
     buybackDailyData = buybackDailyCache[dashboardDays] || buybackDailyCache[3];
+    
+    // 保存到本地缓存
+    localStorage.setItem('finance_data', JSON.stringify({
+      allData,
+      buybackDailyCache,
+    }));
+    localStorage.setItem('finance_data_time', now.toString());
+    
     renderAll();
 
     // Lazy load other day variants in background
     [5, 10, 20].forEach(d => {
       fetch('/finance-tracker/api/buyback-daily?days=' + d)
         .then(r => r.ok ? r.json() : null)
-        .then(data => { if (data) buybackDailyCache[d] = data; });
+        .then(data => { 
+          if (data) {
+            buybackDailyCache[d] = data;
+            // 更新本地缓存
+            localStorage.setItem('finance_data', JSON.stringify({
+              allData,
+              buybackDailyCache,
+            }));
+          }
+        });
     });
   } catch (err) {
     document.getElementById('content').innerHTML = `
