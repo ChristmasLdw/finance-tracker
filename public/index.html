@@ -1631,8 +1631,8 @@ const COMPANY_COLORS_LIGHT = { hk00700: 'rgba(30,111,255,0.12)', hk01810: 'rgba(
     const tailRows = [];
     
     // 如果前面有压缩的"无回购"，且第一个回购日距离较远，显示间隔提示
-    if (recentBuybacks.length > 0 && frontDays.length > 0) {
-      const lastFrontDate = frontDays[0].date; // 前面部分最近的日期
+    if (recentBuybacks.length > 0 && frontLen > 0) {
+      const lastFrontDate = tradingDays[frontLen - 1].date; // 前面部分最后一天
       const firstTailBuyback = recentBuybacks[0];
       
       // 计算间隔天数
