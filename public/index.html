@@ -1605,17 +1605,42 @@ const COMPANY_COLORS_LIGHT = { hk00700: 'rgba(30,111,255,0.12)', hk01810: 'rgba(
     }
     const companyMax = Math.max(...companyAmounts, 1);
 
-    // ── Split: front 2/3 normal, last 1/3 normal ──
+    // ── Split: front 2/3 normal, last 1/3 fallback to recent buybacks ──
     const lastThird = Math.max(1, Math.floor(totalDays / 3));
     const frontLen = totalDays - lastThird;
     const frontDays = tradingDays.slice(0, frontLen);
     const tailDays = tradingDays.slice(frontLen);
 
+    // Track dates already shown in front section
+    const shownDates = new Set();
+    for (const td of frontDays) {
+      if (td.buyback) shownDates.add(td.date);
+    }
+
     // ── 1) Front section: collapse consecutive no-buyback ──
     const frontRows = collapseConsecutive(frontDays, color, colorLight, companyMax);
 
-    // ── 2) Tail section: normal display like front section ──
-    const tailRows = collapseConsecutive(tailDays, color, colorLight, companyMax);
+    // ── 2) Tail section: if no buyback in tail, use recent buybacks ──
+    const tailHasBuyback = tailDays.some(td => td.buyback);
+    
+    let tailRows;
+    if (tailHasBuyback) {
+      // tail中有回购，正常按交易日显示
+      tailRows = collapseConsecutive(tailDays, color, colorLight, companyMax);
+    } else {
+      // tail中无回购，从所有回购数据中取最近的N笔回购（排除前面已显示的）
+      const recentBuybacks = [];
+      for (const bb of allBuybacks) {
+        if (!shownDates.has(bb.date)) {
+          recentBuybacks.push(bb);
+          if (recentBuybacks.length >= lastThird) break;
+        }
+      }
+      tailRows = [];
+      for (const bb of recentBuybacks) {
+        tailRows.push(renderBuybackRow(bb.date, bb, color, colorLight, companyMax));
+      }
+    }
 
     // N-day buyback funds total
     const nDayAmount = tradingDays.reduce((s, td) => s + (td.buyback ? (td.buyback.amount || 0) : 0), 0);
