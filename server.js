@@ -434,8 +434,14 @@ app.get('/api/buyback-daily', async (req, res) => {
     // 同时获取neodata数据作为补充
     const buybackAll = getCache('buyback_daily_all', Infinity);
     
-    // 获取真实交易日（从腾讯API）
-    const realTradingDays = new Set(await fetchTradingDays('hk00700', validDays * 2));
+    // 获取真实交易日（从缓存或腾讯API）
+    let realTradingDaysSet = getCache('real_trading_days', 24 * 60 * 60 * 1000); // 24小时缓存
+    if (!realTradingDaysSet) {
+      const apiDays = await fetchTradingDays('hk00700', 500);
+      realTradingDaysSet = apiDays;
+      setCache('real_trading_days', apiDays);
+    }
+    const realTradingDays = new Set(realTradingDaysSet);
     
     // 生成所有工作日（周一到周五）
     const tradingDays = [];
