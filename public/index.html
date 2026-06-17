@@ -1198,25 +1198,25 @@ const DAILY_PAGE_SIZE = 15;
 // Fetch all data — pre-fetch all 4 day-count variants for instant switching
 async function fetchData() {
   try {
-    // Fetch all data plus all 4 day-count variants in parallel
-    const [allResp, d3Resp, d5Resp, d10Resp, d20Resp] = await Promise.all([
+    // Fetch all data and buyback-daily (default 3 days, others lazy load)
+    const [allResp, d3Resp] = await Promise.all([
       fetch('/finance-tracker/api/all'),
       fetch('/finance-tracker/api/buyback-daily?days=3'),
-      fetch('/finance-tracker/api/buyback-daily?days=5'),
-      fetch('/finance-tracker/api/buyback-daily?days=10'),
-      fetch('/finance-tracker/api/buyback-daily?days=20'),
     ]);
 
     if (!allResp.ok) throw new Error('API error: ' + allResp.status);
     allData = await allResp.json();
 
     if (d3Resp.ok) buybackDailyCache[3] = await d3Resp.json();
-    if (d5Resp.ok) buybackDailyCache[5] = await d5Resp.json();
-    if (d10Resp.ok) buybackDailyCache[10] = await d10Resp.json();
-    if (d20Resp.ok) buybackDailyCache[20] = await d20Resp.json();
-
     buybackDailyData = buybackDailyCache[dashboardDays] || buybackDailyCache[3];
     renderAll();
+
+    // Lazy load other day variants in background
+    [5, 10, 20].forEach(d => {
+      fetch('/finance-tracker/api/buyback-daily?days=' + d)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data) buybackDailyCache[d] = data; });
+    });
   } catch (err) {
     document.getElementById('content').innerHTML = `
       <div class="empty">
