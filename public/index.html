@@ -1637,6 +1637,19 @@ const COMPANY_COLORS_LIGHT = { hk00700: 'rgba(30,111,255,0.12)', hk01810: 'rgba(
         }
       }
       tailRows = [];
+      
+      // 如果前面最后一天和第一个回购日之间有间隔，显示无回购提示
+      if (recentBuybacks.length > 0 && frontLen > 0) {
+        const lastFrontDate = tradingDays[frontLen - 1].date;
+        const firstTailBuyback = recentBuybacks[0];
+        const lastFront = new Date(lastFrontDate + 'T00:00:00+08:00');
+        const firstTail = new Date(firstTailBuyback.date + 'T00:00:00+08:00');
+        const diffDays = Math.round((lastFront - firstTail) / (1000 * 60 * 60 * 24));
+        if (diffDays > 3) {
+          tailRows.push(renderEllipsisRow(diffDays));
+        }
+      }
+      
       for (const bb of recentBuybacks) {
         tailRows.push(renderBuybackRow(bb.date, bb, color, colorLight, companyMax));
       }
