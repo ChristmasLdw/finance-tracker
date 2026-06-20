@@ -711,14 +711,31 @@ app.post('/api/warm', async (req, res) => {
         const neodataResp = await callNeodata(info.neodataQuery, 'all');
         const freshItems = extractBuybackFromNeodata(neodataResp, code);
 
-        // Merge: build map from existing, then upsert fresh records
+        // Merge: build map from existing, then upsert fresh neodata, then upsert K-line
         const existingItems = (existingData[code] && existingData[code].dailyBuybacks) || [];
         const mergedMap = {};
         for (const item of existingItems) mergedMap[item.date] = item;
         let newCount = 0;
         for (const item of freshItems) {
           if (!mergedMap[item.date]) newCount++;
-          mergedMap[item.date] = item; // fresh data wins for same date
+          mergedMap[item.date] = item; // fresh neodata wins for same date
+        }
+        // Also merge K-line buyback data as fallback (neodata may miss some dates)
+        const klineCache = getCache(`kline_${code}_5y`, Infinity);
+        if (klineCache && klineCache.markers && klineCache.markers.buyback) {
+          for (const m of klineCache.markers.buyback) {
+            if (m.buyback && !mergedMap[m.time]) {
+              mergedMap[m.time] = {
+                date: m.time,
+                shares: m.buyback.shares,
+                sharesWan: m.buyback.sharesWan,
+                avgPrice: m.buyback.avgPrice,
+                amount: m.buyback.amount,
+                source: 'tencent_kline',
+              };
+              newCount++;
+            }
+          }
         }
         const mergedItems = Object.values(mergedMap).sort((a, b) => b.date.localeCompare(a.date));
 
